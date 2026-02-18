@@ -120,8 +120,8 @@ const ct=new OrbitControls(cam,r.domElement);ct.enableDamping=true;ct.dampingFac
 
 sc.add(new THREE.AmbientLight(0x3a5580,.5));
 const kL=new THREE.DirectionalLight(0xffeedd,.85);kL.position.set(4,6,3);sc.add(kL);
-sc.add(Object.assign(new THREE.DirectionalLight(0x06b6d4,.3),{position:new THREE.Vector3(-4,2,-3)}));
-sc.add(Object.assign(new THREE.DirectionalLight(0xfbbf24,.2),{position:new THREE.Vector3(-1,-2,-4)}));
+const fL=new THREE.DirectionalLight(0x06b6d4,.3);fL.position.set(-4,2,-3);sc.add(fL);
+const rL=new THREE.DirectionalLight(0xfbbf24,.2);rL.position.set(-1,-2,-4);sc.add(rL);
 const cL=new THREE.PointLight(0xfbbf24,0,.9,2);sc.add(cL);
 
 const cp=new THREE.Plane(new THREE.Vector3(0,-1,0),Y_TOP);
