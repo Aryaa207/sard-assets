@@ -95,8 +95,7 @@ const COMPS=[
   {n:'Arduino Nano',sp:'ATmega328P • 16MHz',d:'Dedicated sensor acquisition — I2C/Serial fusion bridge.',img:IB+'arduinonano.png',p:[.13,.02,-.08],s:.34,h:.62},
   {n:'Raspberry Pi 4B',sp:'BCM2711 • 4GB • ARM',d:'Edge AI running YuNet — ~100 face detections/frame.',img:IB+'rpi4b.png',p:[-.06,-.01,.10],s:.40,h:.70},
   {n:'KK2.1.5 FC',sp:'ATmega644PA • 6-axis',d:'Flight controller with tuned PID for stabilized autonomous flight.',img:IB+'kk215.png',p:[0,-.05,0],s:.48,h:.78},
-  {n:'ESC Array',sp:'4× 30A • BLHeli',d:'Speed controllers driving motors at 2.4:1 thrust-to-weight.',img:IB+'esc.png',p:[.22,-.06,.20],s:.50,h:.80},
-  {n:'3S LiPo',sp:'2200mAh • 11.1V • 25C',d:'Zeee power system — 7–10 min endurance with full AI payload.',img:IB+'lipo3s.png',p:[0,-.13,0],s:.60,h:.90},
+  {n:'3S LiPo',sp:'2200mAh • 11.1V • 25C',d:'Zeee power system — 7–10 min endurance with full AI payload.',img:IB+'lipo3s.png',p:[0,-.13,0],s:.62,h:.92},
 ];
 
 const SECS=[
@@ -104,19 +103,16 @@ const SECS=[
   {at:.07,n:'02',l:'Optics',t:'Dual Camera Module',d:'Arducam 64MP for AI facial detection. OV2659 for secondary surveillance. Full 360° coverage.'},
   {at:.20,n:'03',l:'Navigation',t:'Sensors & Telemetry',d:'NEO-6M GPS with 2.5m CEP. LSM9DS1 9-axis IMU feeds the Extended Kalman Filter.'},
   {at:.36,n:'04',l:'Compute',t:'Processing Core',d:'Raspberry Pi 4B runs YuNet DNN — ~100 face detections/frame. Arduino Nano handles sensor fusion.'},
-  {at:.50,n:'05',l:'Flight',t:'Control Systems',d:'KK2.1.5 with tuned PID gains. ESC array at 2.4:1 thrust-to-weight ratio.'},
+  {at:.50,n:'05',l:'Flight',t:'Control Systems',d:'KK2.1.5 with tuned PID gains. Brushless motors at 2.4:1 thrust-to-weight ratio.'},
   {at:.65,n:'06',l:'Power',t:'Energy System',d:'Zeee 3S LiPo 2200mAh. 7–10 min endurance with full payload and active AI.'},
   {at:.86,n:'07',l:'Complete',t:'Full Cross-Section',d:'Dual-controller avionics — edge AI, sensor fusion, autonomous tracking. Total: $476.'},
 ];
 
-const vp=document.getElementById('viewport');
-const W=()=>vp.clientWidth,H=()=>vp.clientHeight;
-
+const vp=document.getElementById('viewport');const W=()=>vp.clientWidth,H=()=>vp.clientHeight;
 const r=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(W(),H());
 r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;
-r.toneMappingExposure=1.15;r.localClippingEnabled=true;
-vp.appendChild(r.domElement);
+r.toneMappingExposure=1.15;r.localClippingEnabled=true;vp.appendChild(r.domElement);
 
 const sc=new THREE.Scene();sc.background=new THREE.Color(0x080c16);sc.fog=new THREE.FogExp2(0x080c16,.7);
 const cam=new THREE.PerspectiveCamera(33,W()/H(),.01,50);cam.position.set(.9,.38,1);
@@ -130,7 +126,6 @@ const cL=new THREE.PointLight(0xfbbf24,0,.9,2);sc.add(cL);
 
 const cp=new THREE.Plane(new THREE.Vector3(0,-1,0),Y_TOP);
 const gg=new THREE.Group();sc.add(gg);
-
 const gS=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
   uniforms:{uA:{value:0},uT:{value:0}},
   vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -138,7 +133,7 @@ const gS=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.
 });
 const gP=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),gS);gP.rotation.x=-Math.PI/2;gg.add(gP);
 const rM=new THREE.MeshBasicMaterial({color:0xfbbf24,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
-const rg=new THREE.Mesh(new THREE.RingGeometry(.22,.25,96),rM);rg.rotation.x=-Math.PI/2;gg.add(rg);
+const rgM=new THREE.Mesh(new THREE.RingGeometry(.22,.25,96),rM);rgM.rotation.x=-Math.PI/2;gg.add(rgM);
 const capMat=new THREE.MeshStandardMaterial({color:0x0a1628,metalness:.5,roughness:.3,side:THREE.DoubleSide,transparent:true,opacity:0});
 const capM=new THREE.Mesh(new THREE.CircleGeometry(.5,64),capMat);capM.rotation.x=-Math.PI/2;gg.add(capM);
 
