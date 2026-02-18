@@ -195,17 +195,21 @@ const $rf=document.getElementById('uRF'),$rh=document.getElementById('uRH'),$rp=
 
 let tgt=0,cur=0,sI=-1;
 let completed=false;
+let scrollPassCount=0;
 
 window.addEventListener('wheel',e=>{
-  // If teardown is complete and user scrolls down, let parent handle it
   if(completed && e.deltaY>0){
-    // Send message to parent to scroll down
-    window.parent.postMessage({type:'sard-scroll-done'},'*');
-    return; // don't preventDefault — let it pass through
+    scrollPassCount++;
+    window.parent.postMessage({type:'sard-scroll-done',count:scrollPassCount},'*');
+    // After first attempt, also try disabling pointer events from inside
+    if(scrollPassCount>1){
+      document.body.style.pointerEvents='none';
+    }
+    return;
   }
-  // If scrolling back up from completed, re-engage
   if(completed && e.deltaY<0){
-    completed=false;
+    completed=false;scrollPassCount=0;
+    document.body.style.pointerEvents='auto';
   }
   e.preventDefault();
   tgt+=e.deltaY*.00035;
@@ -216,8 +220,13 @@ let tY=0;
 window.addEventListener('touchstart',e=>{tY=e.touches[0].clientY;},{passive:true});
 window.addEventListener('touchmove',e=>{
   const dy=tY-e.touches[0].clientY;tY=e.touches[0].clientY;
-  if(completed && dy>0){window.parent.postMessage({type:'sard-scroll-done'},'*');return;}
-  if(completed && dy<0) completed=false;
+  if(completed && dy>0){
+    scrollPassCount++;
+    window.parent.postMessage({type:'sard-scroll-done',count:scrollPassCount},'*');
+    if(scrollPassCount>1) document.body.style.pointerEvents='none';
+    return;
+  }
+  if(completed && dy<0){completed=false;scrollPassCount=0;document.body.style.pointerEvents='auto';}
   tgt+=dy*.0018;tgt=Math.max(0,Math.min(1,tgt));
   e.preventDefault();
 },{passive:false});
