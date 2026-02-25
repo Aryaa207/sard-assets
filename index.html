@@ -5,212 +5,520 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>S.A.R.D — Interactive Teardown</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
+/* ── TOKENS (matches portfolio site) ─────────────── */
+:root{
+  --bg:   #0e1420;
+  --bg2:  #121828;
+  --bg3:  #171f30;
+  --gold: #c9a84c;
+  --gold2:rgba(201,168,76,.18);
+  --gold3:rgba(201,168,76,.07);
+  --white:#f9fafb;
+  --d1:   rgba(249,250,251,.72);
+  --d2:   rgba(249,250,251,.42);
+  --d3:   rgba(249,250,251,.22);
+  --d4:   rgba(249,250,251,.08);
+  --line: rgba(249,250,251,.08);
+  --line2:rgba(249,250,251,.14);
+  --ease: cubic-bezier(0.16,1,0.3,1);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;background:#0a0e17;color:#f9fafb;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:'Outfit',sans-serif;-webkit-font-smoothing:antialiased}
 
-/* LOADER */
-#loader{position:fixed;inset:0;z-index:200;background:#0a0e17;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.8rem;transition:opacity .9s,visibility .9s}
+/* ── LOADER ──────────────────────────────────────── */
+#loader{
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2rem;
+  transition:opacity .9s,visibility .9s;
+}
 #loader.done{opacity:0;visibility:hidden;pointer-events:none}
-.ld-ring{width:52px;height:52px;position:relative}
-.ld-ring::before,.ld-ring::after{content:'';position:absolute;inset:0;border:2px solid transparent;border-radius:50%}
-.ld-ring::before{border-top-color:#4ade80;animation:ldrot 2s linear infinite}
-.ld-ring::after{inset:7px;border-bottom-color:#3b82f6;animation:ldrot 1.4s linear reverse infinite}
-@keyframes ldrot{to{transform:rotate(360deg)}}
-.ld-label{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:#4ade80;letter-spacing:4px;text-transform:uppercase;text-align:center}
-.ld-track{width:200px;height:2px;background:rgba(75,222,128,.08);border-radius:2px;overflow:hidden}
-.ld-fill{height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#3b82f6);transition:width .2s}
-.ld-pct{font-family:'IBM Plex Mono',monospace;font-size:.5rem;color:#9ca3af;letter-spacing:2px}
 
-/* VIEWPORT */
+.ld-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(28px,4vw,48px);letter-spacing:3px;
+  color:var(--white);text-align:center;
+}
+.ld-title span{color:var(--gold);}
+
+.ld-ring{width:48px;height:48px;position:relative}
+.ld-ring::before,.ld-ring::after{
+  content:'';position:absolute;inset:0;
+  border:1px solid transparent;border-radius:50%;
+}
+.ld-ring::before{border-top-color:var(--gold);animation:ldrot 2s linear infinite}
+.ld-ring::after{inset:8px;border-bottom-color:rgba(201,168,76,.4);animation:ldrot 1.6s linear reverse infinite}
+@keyframes ldrot{to{transform:rotate(360deg)}}
+
+.ld-label{
+  font-family:'DM Mono',monospace;font-size:.52rem;
+  color:var(--gold);letter-spacing:3.5px;text-transform:uppercase;text-align:center;
+}
+.ld-track{width:180px;height:1px;background:var(--line);overflow:hidden}
+.ld-fill{height:100%;width:0%;background:var(--gold);transition:width .2s}
+.ld-pct{font-family:'DM Mono',monospace;font-size:.48rem;color:var(--d3);letter-spacing:2px}
+
+/* ── VIEWPORT ─────────────────────────────────────── */
 #viewport{position:fixed;inset:0;z-index:1}
 #viewport canvas{display:block;width:100%!important;height:100%!important}
 
-/* UI OVERLAY */
+/* ── UI OVERLAY ───────────────────────────────────── */
 #ui{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden}
 
-.bar{position:absolute;top:0;left:0;right:0;padding:1.3rem 2rem;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(10,14,23,.95),transparent)}
-.bar-l{display:flex;align-items:center;gap:.65rem}
-.bar-dot{width:5px;height:5px;background:#4ade80;border-radius:50%;box-shadow:0 0 8px rgba(75,222,128,.5);animation:dpulse 2.2s ease-in-out infinite}
-@keyframes dpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
-.bar-tag{font-family:'IBM Plex Mono',monospace;font-size:.52rem;font-weight:600;color:#4ade80;letter-spacing:2.5px;text-transform:uppercase}
-.bar-pct{font-family:'IBM Plex Mono',monospace;font-size:.52rem;color:#9ca3af;letter-spacing:1.5px;transition:color .3s}
+/* ── TOP BAR ──────────────────────────────────────── */
+.bar{
+  position:absolute;top:0;left:0;right:0;
+  padding:1.4rem 2.2rem;
+  display:flex;justify-content:space-between;align-items:center;
+  background:linear-gradient(to bottom,rgba(14,20,32,.96),transparent);
+  border-bottom:1px solid var(--line);
+}
+.bar-l{display:flex;align-items:center;gap:.75rem}
+.bar-dot{
+  width:5px;height:5px;background:var(--gold);border-radius:50%;
+  box-shadow:0 0 8px rgba(201,168,76,.5);
+  animation:dpulse 2.5s ease-in-out infinite;
+}
+@keyframes dpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.5)}}
+.bar-tag{
+  font-family:'DM Mono',monospace;font-size:.5rem;font-weight:400;
+  color:var(--gold);letter-spacing:3px;text-transform:uppercase;
+}
+.bar-sep{width:1px;height:10px;background:var(--line2);}
+.bar-pct{
+  font-family:'DM Mono',monospace;font-size:.5rem;
+  color:var(--d3);letter-spacing:1.5px;
+  transition:color .3s;
+}
 
-.hero{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;width:85%;max-width:580px}
-.hero h1{font-family:'Rajdhani',sans-serif;font-size:clamp(2.2rem,5.5vw,4.2rem);font-weight:700;letter-spacing:-.02em;line-height:.95;color:#f9fafb;text-transform:uppercase;margin-bottom:.65rem}
-.hero h1 span{color:#4ade80}
-.hero p{font-size:clamp(.82rem,1.2vw,1rem);font-weight:400;color:#9ca3af;line-height:1.65}
+/* ── HERO (initial state) ─────────────────────────── */
+.hero{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;width:85%;max-width:540px;
+}
+.hero-eye{
+  font-family:'DM Mono',monospace;font-size:.52rem;font-weight:300;
+  letter-spacing:3.5px;text-transform:uppercase;
+  color:var(--gold);margin-bottom:16px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.hero-eye::before,.hero-eye::after{content:'';flex:1;max-width:28px;height:1px;background:var(--gold);}
+.hero h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2.4rem,6vw,4.8rem);
+  letter-spacing:2px;line-height:.92;
+  color:var(--white);text-transform:uppercase;margin-bottom:18px;
+}
+.hero h1 em{color:var(--gold);font-style:normal;}
+.hero p{
+  font-size:clamp(.82rem,1.1vw,.95rem);font-weight:300;
+  color:var(--d1);line-height:1.75;
+}
 
-.panel{position:absolute;bottom:0;left:0;right:0;padding:0 2rem 1.6rem;display:flex;justify-content:space-between;align-items:flex-end;background:linear-gradient(to top,rgba(10,14,23,.92),transparent);opacity:0;transition:opacity .5s}
-.panel-txt{max-width:380px}
-.panel-tag{font-family:'IBM Plex Mono',monospace;font-size:.5rem;font-weight:600;color:#4ade80;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:.35rem}
-.panel-h{font-family:'Rajdhani',sans-serif;font-size:clamp(1rem,1.8vw,1.45rem);font-weight:700;letter-spacing:.02em;margin-bottom:.25rem;text-transform:uppercase}
-.panel-d{font-size:.78rem;font-weight:400;color:#9ca3af;line-height:1.6}
+/* ── SCROLL CUE ───────────────────────────────────── */
+.cue{
+  position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.4rem;
+  animation:bob 2.8s ease-in-out infinite;
+}
+.cue span{
+  font-family:'DM Mono',monospace;font-size:.4rem;
+  color:var(--gold);letter-spacing:3.5px;text-transform:uppercase;
+}
+.cue-v{width:1px;height:20px;background:linear-gradient(180deg,transparent,var(--gold));}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);opacity:.25}50%{transform:translateX(-50%) translateY(6px);opacity:1}}
 
-.rail{display:flex;flex-direction:column;align-items:center;gap:.6rem}
-.rail-t{width:2px;height:140px;background:rgba(75,222,128,.08);border-radius:2px;position:relative}
-.rail-f{position:absolute;top:0;left:0;width:100%;height:0%;background:linear-gradient(180deg,#4ade80,#3b82f6);border-radius:2px;box-shadow:0 0 10px rgba(75,222,128,.3)}
-.rail-h{position:absolute;left:50%;top:0%;transform:translate(-50%,-50%);width:7px;height:7px;background:#4ade80;border-radius:50%;box-shadow:0 0 8px rgba(75,222,128,.5)}
-.rail-p{font-family:'IBM Plex Mono',monospace;font-size:.5rem;color:#9ca3af}
-
-.cue{position:absolute;bottom:1.6rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.35rem;animation:bob 2.5s ease-in-out infinite}
-.cue span{font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:#4ade80;letter-spacing:3.5px;text-transform:uppercase}
-.cue-v{width:1px;height:18px;background:linear-gradient(180deg,transparent,#4ade80)}
-@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);opacity:.3}50%{transform:translateX(-50%) translateY(5px);opacity:1}}
-
-/* DONE INDICATOR - shown when scroll completes */
-.done-cue{position:absolute;bottom:1.6rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.35rem;opacity:0;transition:opacity .5s;animation:bob 2.5s ease-in-out infinite}
+/* ── DONE CUE ─────────────────────────────────────── */
+.done-cue{
+  position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.4rem;
+  opacity:0;transition:opacity .5s;
+  animation:bob 2.8s ease-in-out infinite;
+}
 .done-cue.on{opacity:1}
-.done-cue span{font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:#4ade80;letter-spacing:3.5px;text-transform:uppercase}
+.done-cue span{
+  font-family:'DM Mono',monospace;font-size:.4rem;
+  color:var(--gold);letter-spacing:3px;text-transform:uppercase;
+}
 
-/* COMPONENT CARD */
-.comp-card{position:absolute;right:2.5rem;top:50%;transform:translateY(-50%) translateX(30px);opacity:0;transition:all .55s cubic-bezier(.23,1,.32,1);pointer-events:none;width:240px;z-index:60}
+/* ── BOTTOM PANEL ─────────────────────────────────── */
+.panel{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:0 2.2rem 1.8rem;
+  display:flex;justify-content:space-between;align-items:flex-end;
+  background:linear-gradient(to top,rgba(14,20,32,.95),transparent);
+  opacity:0;transition:opacity .5s;
+}
+.panel-txt{max-width:420px}
+.panel-tag{
+  font-family:'DM Mono',monospace;font-size:.48rem;font-weight:300;
+  color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-bottom:.5rem;
+  display:flex;align-items:center;gap:8px;
+}
+.panel-tag::before{content:'';width:16px;height:1px;background:var(--gold);}
+.panel-h{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(1.1rem,2vw,1.6rem);letter-spacing:1.5px;
+  margin-bottom:.4rem;text-transform:uppercase;color:var(--white);
+}
+.panel-d{font-size:.78rem;font-weight:300;color:var(--d2);line-height:1.7;}
+
+/* ── PROGRESS RAIL ────────────────────────────────── */
+.rail{display:flex;flex-direction:column;align-items:center;gap:.65rem}
+.rail-t{
+  width:1px;height:120px;
+  background:var(--line);position:relative;
+}
+.rail-f{
+  position:absolute;top:0;left:0;width:100%;height:0%;
+  background:linear-gradient(180deg,var(--gold),rgba(201,168,76,.3));
+}
+.rail-h{
+  position:absolute;left:50%;top:0%;
+  transform:translate(-50%,-50%);
+  width:6px;height:6px;background:var(--gold);border-radius:50%;
+  box-shadow:0 0 8px rgba(201,168,76,.5);
+}
+.rail-p{
+  font-family:'DM Mono',monospace;font-size:.46rem;
+  color:var(--d3);letter-spacing:1.5px;
+}
+
+/* ── COMPONENT CARD ───────────────────────────────── */
+.comp-card{
+  position:absolute;right:2.5rem;top:50%;
+  transform:translateY(-50%) translateX(32px);
+  opacity:0;transition:all .6s var(--ease);
+  pointer-events:none;width:236px;z-index:60;
+}
 .comp-card.on{opacity:1;transform:translateY(-50%) translateX(0)}
-.comp-inner{background:rgba(31,41,55,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(75,222,128,.15);border-radius:4px;overflow:hidden}
-.comp-img-wrap{position:relative;width:100%;height:150px;background:rgba(17,24,39,.7);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.comp-img{max-width:78%;max-height:120px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(75,222,128,.08));transition:transform .5s cubic-bezier(.23,1,.32,1)}
-.comp-card.on .comp-img{transform:scale(1.03)}
-.comp-body{padding:.8rem .9rem;border-top:1px solid rgba(255,255,255,.05)}
-.comp-name{font-family:'IBM Plex Mono',monospace;font-size:.55rem;font-weight:600;color:#4ade80;letter-spacing:2px;text-transform:uppercase;margin-bottom:.25rem}
-.comp-spec{font-size:.65rem;font-weight:500;color:#f9fafb;margin-bottom:.2rem}
-.comp-desc{font-size:.6rem;font-weight:400;color:#9ca3af;line-height:1.5}
-.comp-connect{position:absolute;left:-35px;top:50%;width:35px;height:1px;background:linear-gradient(90deg,rgba(75,222,128,.35),rgba(75,222,128,.05));transform:translateY(-50%)}
-.comp-connect-dot{position:absolute;left:-39px;top:50%;width:4px;height:4px;background:#4ade80;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 5px rgba(75,222,128,.4)}
 
-/* CALLOUTS */
-.cl{position:absolute;display:flex;align-items:center;gap:3px;opacity:0;transform:translateX(6px);transition:opacity .3s,transform .3s;pointer-events:none}
+.comp-inner{
+  background:rgba(18,24,40,.75);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--line2);
+  overflow:hidden;
+}
+/* gold top stripe */
+.comp-inner::before{
+  content:'';display:block;height:2px;
+  background:var(--gold);
+  opacity:.7;
+}
+.comp-img-wrap{
+  width:100%;height:140px;
+  background:rgba(14,20,32,.8);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.comp-img{
+  max-width:75%;max-height:110px;object-fit:contain;
+  filter:drop-shadow(0 4px 16px rgba(201,168,76,.1));
+  transition:transform .55s var(--ease);
+}
+.comp-card.on .comp-img{transform:scale(1.04)}
+.comp-body{
+  padding:.85rem 1rem;
+  border-top:1px solid var(--line);
+}
+.comp-name{
+  font-family:'DM Mono',monospace;font-size:.5rem;font-weight:400;
+  color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:.3rem;
+}
+.comp-spec{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1rem;letter-spacing:1px;
+  color:var(--white);margin-bottom:.3rem;
+}
+.comp-desc{font-size:.6rem;font-weight:300;color:var(--d2);line-height:1.55}
+
+.comp-connect{
+  position:absolute;left:-36px;top:50%;width:36px;height:1px;
+  background:linear-gradient(90deg,rgba(201,168,76,.3),rgba(201,168,76,.05));
+  transform:translateY(-50%);
+}
+.comp-connect-dot{
+  position:absolute;left:-40px;top:50%;
+  width:4px;height:4px;background:var(--gold);border-radius:50%;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 5px rgba(201,168,76,.4);
+}
+
+/* ── CALLOUT LABELS ───────────────────────────────── */
+.cl{
+  position:absolute;display:flex;align-items:center;gap:3px;
+  opacity:0;transform:translateX(8px);
+  transition:opacity .35s,transform .35s;pointer-events:none;
+}
 .cl.on{opacity:1;transform:translateX(0)}
-.cl-d{width:4px;height:4px;background:#4ade80;border-radius:50%;box-shadow:0 0 5px rgba(75,222,128,.4);flex-shrink:0}
-.cl-l{width:14px;height:1px;background:linear-gradient(90deg,rgba(75,222,128,.5),transparent);flex-shrink:0}
-.cl-b{background:rgba(31,41,55,.7);backdrop-filter:blur(10px);border:1px solid rgba(75,222,128,.15);border-radius:2px;padding:2px 5px}
-.cl-n{font-family:'IBM Plex Mono',monospace;font-size:.4rem;font-weight:600;color:#4ade80;letter-spacing:1.5px;text-transform:uppercase}
+.cl-d{width:4px;height:4px;background:var(--gold);border-radius:50%;box-shadow:0 0 5px rgba(201,168,76,.4);flex-shrink:0}
+.cl-l{width:14px;height:1px;background:linear-gradient(90deg,rgba(201,168,76,.45),transparent);flex-shrink:0}
+.cl-b{
+  background:rgba(18,24,40,.7);backdrop-filter:blur(10px);
+  border:1px solid var(--line2);
+  padding:2px 6px;
+}
+.cl-n{
+  font-family:'DM Mono',monospace;font-size:.38rem;font-weight:400;
+  color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;
+}
 
-@media(max-width:900px){.comp-card{right:1rem;width:190px;top:auto;bottom:90px;transform:translateY(0) translateX(20px)}.comp-card.on{transform:translateY(0) translateX(0)}.comp-img-wrap{height:100px}.comp-connect,.comp-connect-dot{display:none}.bar{padding:.9rem 1rem}.panel{padding:0 1rem 1rem;flex-direction:column;gap:.6rem;align-items:flex-start}.rail{display:none}}
-@media(max-width:600px){.comp-card{width:160px;right:.5rem;bottom:80px}.comp-img-wrap{height:80px}.comp-body{padding:.5rem .6rem}}
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media(max-width:900px){
+  .comp-card{right:1rem;width:188px;top:auto;bottom:88px;transform:translateY(0) translateX(22px)}
+  .comp-card.on{transform:translateY(0) translateX(0)}
+  .comp-img-wrap{height:96px}
+  .comp-connect,.comp-connect-dot{display:none}
+  .bar{padding:.9rem 1.2rem}
+  .panel{padding:0 1.2rem 1.1rem;flex-direction:column;gap:.6rem;align-items:flex-start}
+  .rail{display:none}
+}
+@media(max-width:600px){
+  .comp-card{width:158px;right:.5rem;bottom:80px}
+  .comp-img-wrap{height:76px}
+  .comp-body{padding:.5rem .65rem}
+}
 </style>
 </head>
 <body>
-<div id="loader"><div class="ld-ring"></div><div class="ld-label" id="ldT">Initializing S.A.R.D</div><div class="ld-track"><div class="ld-fill" id="ldF"></div></div><div class="ld-pct" id="ldP">0%</div></div>
-<div id="viewport"></div>
-<div id="ui">
-  <div class="bar"><div class="bar-l"><div class="bar-dot"></div><span class="bar-tag">S.A.R.D // Teardown</span></div><span class="bar-pct" id="uPct">0.0%</span></div>
-  <div class="hero" id="uHero"><h1>What's inside <span>S.A.R.D</span>?</h1><p>Scroll to slice through the airframe and explore the avionics, AI processor, and sensor suite inside a $476 surveillance drone.</p></div>
-  <div class="panel" id="uPanel"><div class="panel-txt"><div class="panel-tag" id="uTag">01 // Exterior</div><div class="panel-h" id="uHead">Airframe Shell</div><div class="panel-d" id="uDesc">DXW 500mm wheelbase multi-rotor airframe.</div></div><div class="rail"><div class="rail-t"><div class="rail-f" id="uRF"></div><div class="rail-h" id="uRH"></div></div><div class="rail-p" id="uRP">0%</div></div></div>
-  <div class="cue" id="uCue"><span>Scroll to dissect</span><div class="cue-v"></div></div>
-  <div class="done-cue" id="uDone"><span>↓ Continue scrolling ↓</span></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-title">S.<span>A</span>.R.D</div>
+  <div class="ld-ring"></div>
+  <div class="ld-label" id="ldT">Initializing teardown</div>
+  <div class="ld-track"><div class="ld-fill" id="ldF"></div></div>
+  <div class="ld-pct" id="ldP">0%</div>
 </div>
-<div class="comp-card" id="compCard"><div class="comp-connect-dot"></div><div class="comp-connect"></div><div class="comp-inner"><div class="comp-img-wrap"><img class="comp-img" id="compImg" src="" alt=""></div><div class="comp-body"><div class="comp-name" id="compName"></div><div class="comp-spec" id="compSpec"></div><div class="comp-desc" id="compDesc"></div></div></div></div>
+
+<!-- 3D VIEWPORT -->
+<div id="viewport"></div>
+
+<!-- UI OVERLAY -->
+<div id="ui">
+  <div class="bar">
+    <div class="bar-l">
+      <div class="bar-dot"></div>
+      <span class="bar-tag">S.A.R.D</span>
+      <div class="bar-sep"></div>
+      <span class="bar-tag" style="color:var(--d3);letter-spacing:2px;">Interactive Teardown</span>
+    </div>
+    <span class="bar-pct" id="uPct">0.0%</span>
+  </div>
+
+  <div class="hero" id="uHero">
+    <div class="hero-eye">Surveillance &amp; Reconnaissance Drone</div>
+    <h1>What's inside <em>S.A.R.D</em>?</h1>
+    <p>Scroll to slice through the airframe and explore the avionics, AI processor, and sensor suite inside a $476 surveillance drone.</p>
+  </div>
+
+  <div class="panel" id="uPanel">
+    <div class="panel-txt">
+      <div class="panel-tag" id="uTag">01 &nbsp;&mdash;&nbsp; Exterior</div>
+      <div class="panel-h" id="uHead">Airframe Shell</div>
+      <div class="panel-d" id="uDesc">DXW 500mm wheelbase multi-rotor airframe.</div>
+    </div>
+    <div class="rail">
+      <div class="rail-t">
+        <div class="rail-f" id="uRF"></div>
+        <div class="rail-h" id="uRH"></div>
+      </div>
+      <div class="rail-p" id="uRP">0%</div>
+    </div>
+  </div>
+
+  <div class="cue" id="uCue">
+    <span>Scroll to dissect</span>
+    <div class="cue-v"></div>
+  </div>
+  <div class="done-cue" id="uDone">
+    <span>&#8595;&nbsp; Continue scrolling &nbsp;&#8595;</span>
+  </div>
+</div>
+
+<!-- COMPONENT CARD -->
+<div class="comp-card" id="compCard">
+  <div class="comp-connect-dot"></div>
+  <div class="comp-connect"></div>
+  <div class="comp-inner">
+    <div class="comp-img-wrap"><img class="comp-img" id="compImg" src="" alt=""></div>
+    <div class="comp-body">
+      <div class="comp-name" id="compName"></div>
+      <div class="comp-spec" id="compSpec"></div>
+      <div class="comp-desc" id="compDesc"></div>
+    </div>
+  </div>
+</div>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
-import*as THREE from'three';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+import*as THREE from'three';
+import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
 
 const MODEL='https://aryaa207.github.io/sard-assets/drone_3d_model.glb';
 const Y_TOP=.24,Y_BOT=-.22,LRP=.055;
 const IB='https://aryaa207.github.io/sard-assets/components/';
 
 const COMPS=[
-  {n:'Arducam 64MP',sp:'9248×6944 • AF • 1/1.32"',d:'High-res optical sensor for AI facial detection via YuNet DNN.',img:IB+'arducam64mp.png',p:[.15,.16,.18],s:.04,h:.28},
-  {n:'OV2659 Camera',sp:'2MP • 60° FOV • USB',d:'Secondary surveillance optics for redundant visual coverage.',img:IB+'ov2659.png',p:[-.18,.15,.12],s:.04,h:.28},
-  {n:'GPS NEO-6M',sp:'2.5m CEP • 50ch • UART',d:'u-blox positioning for waypoint navigation and geofencing.',img:IB+'neo6m.png',p:[0,.12,-.16],s:.14,h:.40},
-  {n:'LSM9DS1 IMU',sp:'9-DOF • Accel/Gyro/Mag',d:'Inertial measurement feeding Extended Kalman Filter.',img:IB+'lsm9ds1.png',p:[-.12,.06,0],s:.24,h:.52},
-  {n:'Arduino Uno',sp:'ATmega328P • 16MHz',d:'Dedicated sensor acquisition — I2C/Serial fusion bridge.',img:IB+'arduinonano.png',p:[.13,.02,-.08],s:.34,h:.62},
-  {n:'Raspberry Pi 4B',sp:'BCM2711 • 4GB • ARM',d:'Edge AI running YuNet — ~100 face detections/frame.',img:IB+'rpi4b.png',p:[-.06,-.01,.10],s:.40,h:.70},
-  {n:'KK2.1.5 FC',sp:'ATmega644PA • 6-axis',d:'Flight controller with tuned PID for stabilized autonomous flight.',img:IB+'kk215.png',p:[0,-.05,0],s:.48,h:.78},
-  {n:'3S LiPo',sp:'2200mAh • 11.1V • 25C',d:'Zeee power system — 7–10 min endurance with full AI payload.',img:IB+'lipo3s.png',p:[0,-.13,0],s:.62,h:.92},
+  {n:'Arducam 64MP',sp:'9248×6944 · AF · 1/1.32"',d:'High-res optical sensor for AI facial detection via YuNet DNN.',img:IB+'arducam64mp.png',p:[.15,.16,.18],s:.04,h:.28},
+  {n:'OV2659 Camera',sp:'2MP · 60° FOV · USB',d:'Secondary surveillance optics for redundant visual coverage.',img:IB+'ov2659.png',p:[-.18,.15,.12],s:.04,h:.28},
+  {n:'GPS NEO-6M',sp:'2.5m CEP · 50ch · UART',d:'u-blox positioning for waypoint navigation and geofencing.',img:IB+'neo6m.png',p:[0,.12,-.16],s:.14,h:.40},
+  {n:'LSM9DS1 IMU',sp:'9-DOF · Accel/Gyro/Mag',d:'Inertial measurement feeding Extended Kalman Filter.',img:IB+'lsm9ds1.png',p:[-.12,.06,0],s:.24,h:.52},
+  {n:'Arduino Uno',sp:'ATmega328P · 16MHz',d:'Dedicated sensor acquisition — I2C/Serial fusion bridge.',img:IB+'arduinonano.png',p:[.13,.02,-.08],s:.34,h:.62},
+  {n:'Raspberry Pi 4B',sp:'BCM2711 · 4GB · ARM',d:'Edge AI running YuNet — ~100 face detections/frame.',img:IB+'rpi4b.png',p:[-.06,-.01,.10],s:.40,h:.70},
+  {n:'KK2.1.5 FC',sp:'ATmega644PA · 6-axis',d:'Flight controller with tuned PID for stabilized autonomous flight.',img:IB+'kk215.png',p:[0,-.05,0],s:.48,h:.78},
+  {n:'3S LiPo',sp:'2200mAh · 11.1V · 25C',d:'Zeee power system — 7–10 min endurance with full AI payload.',img:IB+'lipo3s.png',p:[0,-.13,0],s:.62,h:.92},
 ];
 
 const SECS=[
-  {at:0,n:'01',l:'Exterior',t:'Airframe Shell',d:'DXW multi-rotor airframe, 500mm wheelbase. Engineered for payload capacity and flight stability.'},
-  {at:.07,n:'02',l:'Optics',t:'Dual Camera Module',d:'Arducam 64MP for AI facial detection. OV2659 for secondary surveillance. Full 360° coverage.'},
+  {at:0,  n:'01',l:'Exterior', t:'Airframe Shell',    d:'DXW multi-rotor airframe, 500mm wheelbase. Engineered for payload capacity and flight stability.'},
+  {at:.07,n:'02',l:'Optics',   t:'Dual Camera Module',d:'Arducam 64MP for AI facial detection. OV2659 for secondary surveillance. Full 360° coverage.'},
   {at:.20,n:'03',l:'Navigation',t:'Sensors & Telemetry',d:'NEO-6M GPS with 2.5m CEP. LSM9DS1 9-axis IMU feeds the Extended Kalman Filter.'},
-  {at:.36,n:'04',l:'Compute',t:'Processing Core',d:'Raspberry Pi 4B runs YuNet DNN — ~100 face detections/frame. Arduino Uno handles sensor fusion.'},
-  {at:.50,n:'05',l:'Flight',t:'Control Systems',d:'KK2.1.5 with tuned PID gains. Brushless motors at 2.4:1 thrust-to-weight ratio.'},
-  {at:.65,n:'06',l:'Power',t:'Energy System',d:'Zeee 3S LiPo 2200mAh. 7–10 min endurance with full payload and active AI.'},
-  {at:.86,n:'07',l:'Complete',t:'Full Cross-Section',d:'Dual-controller avionics — edge AI, sensor fusion, autonomous tracking. Total: $476.'},
+  {at:.36,n:'04',l:'Compute',  t:'Processing Core',   d:'Raspberry Pi 4B runs YuNet DNN — ~100 face detections/frame. Arduino handles sensor fusion.'},
+  {at:.50,n:'05',l:'Flight',   t:'Control Systems',   d:'KK2.1.5 with tuned PID gains. Brushless motors at 2.4:1 thrust-to-weight ratio.'},
+  {at:.65,n:'06',l:'Power',    t:'Energy System',     d:'Zeee 3S LiPo 2200mAh. 7–10 min endurance with full payload and active AI.'},
+  {at:.86,n:'07',l:'Complete', t:'Full Cross-Section', d:'Dual-controller avionics — edge AI, sensor fusion, autonomous tracking. Total: $476.'},
 ];
 
-const vp=document.getElementById('viewport');const W=()=>vp.clientWidth,H=()=>vp.clientHeight;
+const vp=document.getElementById('viewport');
+const W=()=>vp.clientWidth, H=()=>vp.clientHeight;
+
 const r=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(W(),H());
 r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;
-r.toneMappingExposure=1.2;r.localClippingEnabled=true;vp.appendChild(r.domElement);
+r.toneMappingExposure=1.2;r.localClippingEnabled=true;
+vp.appendChild(r.domElement);
 
-const sc=new THREE.Scene();sc.background=new THREE.Color(0x0a0e17);sc.fog=new THREE.FogExp2(0x0a0e17,.6);
-const cam=new THREE.PerspectiveCamera(33,W()/H(),.01,50);cam.position.set(.9,.38,1);
-const ct=new OrbitControls(cam,r.domElement);ct.enableDamping=true;ct.dampingFactor=.06;ct.enablePan=false;ct.minDistance=.45;ct.maxDistance=2.5;ct.target.set(0,.02,0);ct.autoRotate=true;ct.autoRotateSpeed=.35;
+const sc=new THREE.Scene();
+sc.background=new THREE.Color(0x0e1420);
+sc.fog=new THREE.FogExp2(0x0e1420,.55);
 
-// Lighting — bright enough to see the dark drone
-sc.add(new THREE.AmbientLight(0x4a6a8a,.7));
-const kL=new THREE.DirectionalLight(0xffeedd,1.0);kL.position.set(4,6,3);sc.add(kL);
-const fL=new THREE.DirectionalLight(0x4ade80,.25);fL.position.set(-4,2,-3);sc.add(fL);
-const rL=new THREE.DirectionalLight(0x3b82f6,.2);rL.position.set(-1,-2,-4);sc.add(rL);
-const cL=new THREE.PointLight(0x4ade80,0,.9,2);sc.add(cL);
+const cam=new THREE.PerspectiveCamera(33,W()/H(),.01,50);
+cam.position.set(.9,.38,1);
+
+const ct=new OrbitControls(cam,r.domElement);
+ct.enableDamping=true;ct.dampingFactor=.06;ct.enablePan=false;
+ct.minDistance=.45;ct.maxDistance=2.5;ct.target.set(0,.02,0);
+ct.autoRotate=true;ct.autoRotateSpeed=.35;
+
+// Lighting
+sc.add(new THREE.AmbientLight(0x4a5a7a,.75));
+const kL=new THREE.DirectionalLight(0xffeedd,1.1);kL.position.set(4,6,3);sc.add(kL);
+const fL=new THREE.DirectionalLight(0xc9a84c,.2);fL.position.set(-4,2,-3);sc.add(fL);
+const rL=new THREE.DirectionalLight(0x3b5080,.18);rL.position.set(-1,-2,-4);sc.add(rL);
+const cL=new THREE.PointLight(0xc9a84c,0,.9,2);sc.add(cL);
 
 const cp=new THREE.Plane(new THREE.Vector3(0,-1,0),Y_TOP);
 
-// Glow ring — tactical green
+// Glow ring — gold instead of green
 const gg=new THREE.Group();sc.add(gg);
-const gS=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+const gS=new THREE.ShaderMaterial({
+  transparent:true,depthWrite:false,side:THREE.DoubleSide,
   uniforms:{uA:{value:0},uT:{value:0}},
   vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:`uniform float uA,uT;varying vec3 vP;void main(){float d=length(vP.xz);float ring=exp(-pow((d-.24)*16.,2.));float glow=exp(-pow((d-.24)*5.,2.))*.3;float p=.65+.35*sin(uT*2.3);vec3 c=mix(vec3(.29,.87,.5),vec3(.23,.51,.96),smoothstep(.15,.35,d));gl_FragColor=vec4(c,(ring+glow)*uA*p);}`
+  fragmentShader:`
+    uniform float uA,uT;varying vec3 vP;
+    void main(){
+      float d=length(vP.xz);
+      float ring=exp(-pow((d-.24)*16.,2.));
+      float glow=exp(-pow((d-.24)*5.,2.))*.28;
+      float p=.7+.3*sin(uT*2.1);
+      vec3 c=mix(vec3(.79,.66,.3),vec3(.6,.5,.22),smoothstep(.15,.35,d));
+      gl_FragColor=vec4(c,(ring+glow)*uA*p);
+    }
+  `
 });
-const gP=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),gS);gP.rotation.x=-Math.PI/2;gg.add(gP);
-const rM=new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
-const rgM=new THREE.Mesh(new THREE.RingGeometry(.22,.25,96),rM);rgM.rotation.x=-Math.PI/2;gg.add(rgM);
-const capMat=new THREE.MeshStandardMaterial({color:0x111827,metalness:.5,roughness:.3,side:THREE.DoubleSide,transparent:true,opacity:0});
-const capM=new THREE.Mesh(new THREE.CircleGeometry(.5,64),capMat);capM.rotation.x=-Math.PI/2;gg.add(capM);
+const gP=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),gS);
+gP.rotation.x=-Math.PI/2;gg.add(gP);
 
-// Use the drone's ORIGINAL material — no shader override
-// Just add clipping plane to existing materials
+const rM=new THREE.MeshBasicMaterial({color:0xc9a84c,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
+const rgM=new THREE.Mesh(new THREE.RingGeometry(.22,.25,96),rM);
+rgM.rotation.x=-Math.PI/2;gg.add(rgM);
+
+const capMat=new THREE.MeshStandardMaterial({color:0x0e1420,metalness:.4,roughness:.4,side:THREE.DoubleSide,transparent:true,opacity:0});
+const capM=new THREE.Mesh(new THREE.CircleGeometry(.5,64),capMat);
+capM.rotation.x=-Math.PI/2;gg.add(capM);
+
+// Load model — preserve original materials
 new GLTFLoader().load(MODEL,g=>{
   g.scene.traverse(c=>{
     if(c.isMesh){
       c.material.clippingPlanes=[cp];
       c.material.clipShadows=true;
       c.material.side=THREE.DoubleSide;
-      // Brighten the dark texture slightly
-      if(c.material.map){
-        c.material.map.colorSpace=THREE.SRGBColorSpace;
-      }
+      if(c.material.map) c.material.map.colorSpace=THREE.SRGBColorSpace;
       c.material.needsUpdate=true;
     }
   });
-  sc.add(g.scene);document.getElementById('loader').classList.add('done');
-},x=>{if(x.total){const p=Math.round(x.loaded/x.total*100);document.getElementById('ldF').style.width=p+'%';document.getElementById('ldP').textContent=p+'%';document.getElementById('ldT').textContent=p<100?'Loading mesh data':'Compiling shaders';}},
-e=>{console.error(e);document.getElementById('ldT').textContent='LOAD FAILED';document.getElementById('ldT').style.color='#f44';});
+  sc.add(g.scene);
+  document.getElementById('loader').classList.add('done');
+},
+x=>{
+  if(x.total){
+    const p=Math.round(x.loaded/x.total*100);
+    document.getElementById('ldF').style.width=p+'%';
+    document.getElementById('ldP').textContent=p+'%';
+    document.getElementById('ldT').textContent=p<100?'Loading mesh data':'Compiling shaders';
+  }
+},
+e=>{
+  console.error(e);
+  document.getElementById('ldT').textContent='LOAD FAILED';
+  document.getElementById('ldT').style.color='#f87171';
+});
 
+// Callout labels
 const ui=document.getElementById('ui');
-const cls=COMPS.map(c=>{const e=document.createElement('div');e.className='cl';e.innerHTML=`<div class="cl-d"></div><div class="cl-l"></div><div class="cl-b"><div class="cl-n">${c.n}</div></div>`;ui.appendChild(e);return{el:e,cfg:c,p3:new THREE.Vector3(...c.p)};});
+const cls=COMPS.map(c=>{
+  const e=document.createElement('div');
+  e.className='cl';
+  e.innerHTML=`<div class="cl-d"></div><div class="cl-l"></div><div class="cl-b"><div class="cl-n">${c.n}</div></div>`;
+  ui.appendChild(e);
+  return{el:e,cfg:c,p3:new THREE.Vector3(...c.p)};
+});
 
-const $cd=document.getElementById('compCard'),$ci=document.getElementById('compImg'),$cn=document.getElementById('compName'),$cs=document.getElementById('compSpec'),$cdesc=document.getElementById('compDesc');
+const $cd=document.getElementById('compCard');
+const $ci=document.getElementById('compImg');
+const $cn=document.getElementById('compName');
+const $cs=document.getElementById('compSpec');
+const $cdesc=document.getElementById('compDesc');
 let aC=-1;
-function showC(i){if(i===aC)return;aC=i;if(i<0){$cd.classList.remove('on');return;}const c=COMPS[i];$ci.src=c.img;$ci.alt=c.n;$cn.textContent=c.n;$cs.textContent=c.sp;$cdesc.textContent=c.d;$cd.classList.add('on');}
 
-const $p=document.getElementById('uPct'),$h=document.getElementById('uHero'),$pn=document.getElementById('uPanel'),$cu=document.getElementById('uCue'),$dn=document.getElementById('uDone');
-const $tg=document.getElementById('uTag'),$hd=document.getElementById('uHead'),$ds=document.getElementById('uDesc');
-const $rf=document.getElementById('uRF'),$rh=document.getElementById('uRH'),$rp=document.getElementById('uRP');
+function showC(i){
+  if(i===aC)return;aC=i;
+  if(i<0){$cd.classList.remove('on');return;}
+  const c=COMPS[i];
+  $ci.src=c.img;$ci.alt=c.n;
+  $cn.textContent=c.n;$cs.textContent=c.sp;$cdesc.textContent=c.d;
+  $cd.classList.add('on');
+}
 
-let tgt=0,cur=0,sI=-1;
-let completed=false;
-let scrollPassCount=0;
+const $p=document.getElementById('uPct');
+const $h=document.getElementById('uHero');
+const $pn=document.getElementById('uPanel');
+const $cu=document.getElementById('uCue');
+const $dn=document.getElementById('uDone');
+const $tg=document.getElementById('uTag');
+const $hd=document.getElementById('uHead');
+const $ds=document.getElementById('uDesc');
+const $rf=document.getElementById('uRF');
+const $rh=document.getElementById('uRH');
+const $rp=document.getElementById('uRP');
+
+let tgt=0,cur=0,sI=-1,completed=false,scrollPassCount=0;
 
 window.addEventListener('wheel',e=>{
-  if(completed && e.deltaY>0){
+  if(completed&&e.deltaY>0){
     scrollPassCount++;
     window.parent.postMessage({type:'sard-scroll-done',count:scrollPassCount},'*');
-    // After first attempt, also try disabling pointer events from inside
-    if(scrollPassCount>1){
-      document.body.style.pointerEvents='none';
-    }
+    if(scrollPassCount>1) document.body.style.pointerEvents='none';
     return;
   }
-  if(completed && e.deltaY<0){
-    completed=false;scrollPassCount=0;
-    document.body.style.pointerEvents='auto';
-  }
+  if(completed&&e.deltaY<0){completed=false;scrollPassCount=0;document.body.style.pointerEvents='auto';}
   e.preventDefault();
   tgt+=e.deltaY*.00035;
   tgt=Math.max(0,Math.min(1,tgt));
@@ -220,40 +528,88 @@ let tY=0;
 window.addEventListener('touchstart',e=>{tY=e.touches[0].clientY;},{passive:true});
 window.addEventListener('touchmove',e=>{
   const dy=tY-e.touches[0].clientY;tY=e.touches[0].clientY;
-  if(completed && dy>0){
+  if(completed&&dy>0){
     scrollPassCount++;
     window.parent.postMessage({type:'sard-scroll-done',count:scrollPassCount},'*');
     if(scrollPassCount>1) document.body.style.pointerEvents='none';
     return;
   }
-  if(completed && dy<0){completed=false;scrollPassCount=0;document.body.style.pointerEvents='auto';}
+  if(completed&&dy<0){completed=false;scrollPassCount=0;document.body.style.pointerEvents='auto';}
   tgt+=dy*.0018;tgt=Math.max(0,Math.min(1,tgt));
   e.preventDefault();
 },{passive:false});
 
 function upd(t){
-  const y=Y_TOP-t*(Y_TOP-Y_BOT);cp.constant=y;gg.position.y=y;
-  const a=t>.005&&t<.97?1:0;gS.uniforms.uA.value=a;rM.opacity=a*.65;capMat.opacity=a*.5;cL.position.set(0,y,0);cL.intensity=a*1.6;
-  const pc=t*100|0;$p.textContent=(t*100).toFixed(1)+'%';$p.style.color=t>.01?'#4ade80':'#9ca3af';
+  const y=Y_TOP-t*(Y_TOP-Y_BOT);
+  cp.constant=y;gg.position.y=y;
+  const a=t>.005&&t<.97?1:0;
+  gS.uniforms.uA.value=a;rM.opacity=a*.6;capMat.opacity=a*.45;
+  cL.position.set(0,y,0);cL.intensity=a*1.4;
+
+  const pc=t*100|0;
+  $p.textContent=(t*100).toFixed(1)+'%';
+  $p.style.color=t>.01?'var(--gold)':'var(--d3)';
   $rf.style.height=pc+'%';$rh.style.top=pc+'%';$rp.textContent=pc+'%';
 
-  // Check if complete
-  if(t>=.98 && !completed){completed=true;}
+  if(t>=.98&&!completed) completed=true;
   $dn.classList.toggle('on',t>=.98);
 
-  if(t<.03){const f=t/.03;$h.style.opacity=1-f;$h.style.transform=`translate(-50%,${-50-f*25}%)`;$pn.style.opacity=0;$cu.style.opacity=1-f;}
-  else{$h.style.opacity=0;$pn.style.opacity=1;$cu.style.opacity=0;}
-  let idx=0;for(let i=SECS.length-1;i>=0;i--)if(t>=SECS[i].at){idx=i;break;}
-  if(idx!==sI){sI=idx;const s=SECS[idx];$tg.textContent=s.n+' // '+s.l;$hd.textContent=s.t;$ds.textContent=s.d;}
-  let bc=-1;for(let i=0;i<COMPS.length;i++){const c=COMPS[i];if(t>=c.s&&t<=c.h){const m=(c.s+c.h)/2;if(bc<0||Math.abs(t-m)<Math.abs(t-((COMPS[bc].s+COMPS[bc].h)/2)))bc=i;}}
+  if(t<.03){
+    const f=t/.03;
+    $h.style.opacity=1-f;
+    $h.style.transform=`translate(-50%,${-50-f*22}%)`;
+    $pn.style.opacity=0;
+    $cu.style.opacity=1-f;
+  } else {
+    $h.style.opacity=0;
+    $pn.style.opacity=1;
+    $cu.style.opacity=0;
+  }
+
+  let idx=0;
+  for(let i=SECS.length-1;i>=0;i--) if(t>=SECS[i].at){idx=i;break;}
+  if(idx!==sI){
+    sI=idx;const s=SECS[idx];
+    $tg.textContent=s.n+' \u2014 '+s.l;
+    $hd.textContent=s.t;
+    $ds.textContent=s.d;
+  }
+
+  let bc=-1;
+  for(let i=0;i<COMPS.length;i++){
+    const c=COMPS[i];
+    if(t>=c.s&&t<=c.h){
+      const m=(c.s+c.h)/2;
+      if(bc<0||Math.abs(t-m)<Math.abs(t-((COMPS[bc].s+COMPS[bc].h)/2))) bc=i;
+    }
+  }
   showC(bc);
+
   const hw=W()/2,hh=H()/2;
-  cls.forEach(({el,cfg,p3})=>{if(t>=cfg.s&&t<=cfg.h){const pr=p3.clone().project(cam),sx=pr.x*hw+hw,sy=-pr.y*hh+hh;if(pr.z<1&&sx>15&&sx<W()-260&&sy>15&&sy<H()-15){el.style.left=sx+'px';el.style.top=sy+'px';el.classList.add('on');}else el.classList.remove('on');}else el.classList.remove('on');});
+  cls.forEach(({el,cfg,p3})=>{
+    if(t>=cfg.s&&t<=cfg.h){
+      const pr=p3.clone().project(cam);
+      const sx=pr.x*hw+hw,sy=-pr.y*hh+hh;
+      if(pr.z<1&&sx>15&&sx<W()-260&&sy>15&&sy<H()-15){
+        el.style.left=sx+'px';el.style.top=sy+'px';el.classList.add('on');
+      } else el.classList.remove('on');
+    } else el.classList.remove('on');
+  });
 }
 
 const ck=new THREE.Clock();
-!function lp(){requestAnimationFrame(lp);const e=ck.getElapsedTime();cur+=(tgt-cur)*LRP;if(Math.abs(cur-tgt)<.00003)cur=tgt;gS.uniforms.uT.value=e;upd(cur);ct.update();r.render(sc,cam);}();
-addEventListener('resize',()=>{cam.aspect=W()/H();cam.updateProjectionMatrix();r.setSize(W(),H());});
+(function lp(){
+  requestAnimationFrame(lp);
+  const e=ck.getElapsedTime();
+  cur+=(tgt-cur)*LRP;
+  if(Math.abs(cur-tgt)<.00003) cur=tgt;
+  gS.uniforms.uT.value=e;
+  upd(cur);ct.update();r.render(sc,cam);
+})();
+
+addEventListener('resize',()=>{
+  cam.aspect=W()/H();cam.updateProjectionMatrix();r.setSize(W(),H());
+});
 </script>
 </body>
 </html>
