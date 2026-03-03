@@ -166,6 +166,4 @@ GND           ──────► GND
 
 ---
 
-## License
 
-MIT
