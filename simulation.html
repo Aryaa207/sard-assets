@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS-IV // IMU Sensor Fusion Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #080b10;
+  --panel: #0d1218;
+  --panel2: #111820;
+  --border: #1e2d3d;
+  --border2: #253040;
+  --amber: #ffb000;
+  --amber2: #cc8800;
+  --white: #d8e4f0;
+  --dim: #4a5a6a;
+  --dim2: #2a3a4a;
+  --red: #e03838;
+  --blue: #3ca0ff;
+  --green: #3cd278;
+  --cyan: #30d0e0;
+  --glow: rgba(255,176,0,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ─────────────────────────────────────── */
+.header {
+  background: linear-gradient(180deg, #0a0f16 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(255,176,0,0.015) 80px, rgba(255,176,0,0.015) 81px);
+  pointer-events: none;
+}
+.header-left { display: flex; flex-direction: column; gap: 4px; }
+.header-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--white);
+  text-shadow: 0 0 20px rgba(255,176,0,0.3);
+}
+.header-title span { color: var(--amber); }
+.header-sub { font-size: 10px; color: var(--dim); letter-spacing: 3px; }
+.header-right { display: flex; align-items: center; gap: 20px; }
+.status-row { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--dim); letter-spacing: 1px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 4px var(--green)} 50%{opacity:0.4;box-shadow:none} }
+.badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 3px 10px;
+  border: 1px solid var(--border2);
+  color: var(--dim);
+  background: var(--panel);
+}
+.clock { font-size: 12px; color: var(--amber); letter-spacing: 1px; }
+
+/* ── INSTRUCTIONS BANNER ────────────────────────── */
+.instructions {
+  background: linear-gradient(90deg, var(--panel) 0%, #0f1a24 50%, var(--panel) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.inst-item { display: flex; align-items: center; gap: 8px; }
+.inst-key {
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  color: var(--amber);
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.inst-sep { color: var(--border2); }
+
+/* ── MAIN LAYOUT ────────────────────────────────── */
+.main {
+  display: grid;
+  grid-template-columns: 220px 1fr 300px;
+  height: calc(100vh - 90px);
+  gap: 1px;
+  background: var(--border);
+}
+
+/* ── PANELS ─────────────────────────────────────── */
+.panel {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.ph {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--amber);
+  letter-spacing: 2px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(255,176,0,0.05) 0%, transparent 60%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ph-tag {
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 1px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── LEFT DATA PANEL ────────────────────────────── */
+.dp { padding: 10px; overflow-y: auto; flex: 1; }
+.section { margin-bottom: 14px; }
+.section-title {
+  font-size: 9px;
+  color: var(--amber);
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--dim2);
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+}
+.row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+.lbl { font-size: 10px; color: var(--dim); }
+.val { font-size: 12px; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 14px; }
+.raw { color: var(--red); }
+.kal { color: var(--green); }
+.acc { color: var(--blue); }
+
+.bar-wrap { margin: 2px 0 6px; }
+.bar-track { background: var(--dim2); height: 3px; border-radius: 2px; position: relative; }
+.bar-mid { position: absolute; left: 50%; top: -3px; width: 1px; height: 9px; background: var(--border2); }
+.bar-raw { position: absolute; height: 3px; border-radius: 2px; top: 0; background: var(--red); opacity: 0.6; transition: none; }
+.bar-kal { position: absolute; height: 2px; border-radius: 1px; top: 0.5px; background: var(--green); transition: none; }
+
+.divider { border: none; border-top: 1px solid var(--dim2); margin: 8px 0; }
+
+/* MODE SWITCHER */
+.mode-panel {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mode-title { font-size: 9px; color: var(--amber); letter-spacing: 2px; margin-bottom: 6px; }
+.mode-btns { display: flex; gap: 4px; }
+.mode-btn {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 1px;
+  border: 1px solid var(--border2);
+  background: var(--panel2);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.mode-btn:hover { border-color: var(--amber2); color: var(--amber); }
+.mode-btn.active { border-color: var(--amber); color: var(--amber); background: rgba(255,176,0,0.08); }
+
+/* ── VIEWER ─────────────────────────────────────── */
+.viewer { flex: 1; position: relative; cursor: grab; }
+.viewer:active { cursor: grabbing; }
+#three-canvas { width: 100%; height: 100%; display: block; }
+
+.viewer-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Corner brackets */
+.corner {
+  position: absolute;
+  width: 24px; height: 24px;
+  border-color: var(--amber);
+  border-style: solid;
+  opacity: 0.4;
+}
+.corner.tl { top: 12px; left: 12px; border-width: 1px 0 0 1px; }
+.corner.tr { top: 12px; right: 12px; border-width: 1px 1px 0 0; }
+.corner.bl { bottom: 12px; left: 12px; border-width: 0 0 1px 1px; }
+.corner.br { bottom: 12px; right: 12px; border-width: 0 1px 1px 0; }
+
+.hud-label {
+  position: absolute;
+  font-size: 9px;
+  color: var(--amber);
+  opacity: 0.6;
+  letter-spacing: 2px;
+}
+.hud-tl { top: 14px; left: 42px; }
+.hud-tr { top: 14px; right: 42px; text-align: right; }
+.hud-bl { bottom: 14px; left: 42px; }
+.hud-br { bottom: 14px; right: 42px; text-align: right; }
+
+.crosshair {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px; height: 40px;
+  pointer-events: none;
+  opacity: 0.25;
+}
+.crosshair::before, .crosshair::after {
+  content: ''; position: absolute; background: var(--amber);
+}
+.crosshair::before { width: 100%; height: 1px; top: 50%; left: 0; }
+.crosshair::after  { width: 1px; height: 100%; left: 50%; top: 0; }
+
+.angle-readout {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+.angle-readout span { font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; }
+
+/* ── RIGHT PLOTS ─────────────────────────────────── */
+.plots-panel { overflow-y: auto; }
+.plot-block { padding: 8px 10px; border-bottom: 1px solid var(--dim2); flex-shrink: 0; }
+.plot-label { font-size: 9px; color: var(--amber); letter-spacing: 1px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.plot-legend { display: flex; gap: 10px; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 8px; color: var(--dim); }
+.leg-dot { width: 6px; height: 6px; border-radius: 50%; }
+canvas.plot { width: 100%!important; height: 65px!important; }
+
+/* NOISE INDICATOR */
+.noise-block {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.noise-title { font-size: 9px; color: var(--amber); letter-spacing: 2px; margin-bottom: 6px; }
+.noise-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.noise-lbl { font-size: 9px; color: var(--dim); width: 40px; }
+.noise-track { flex: 1; height: 4px; background: var(--dim2); border-radius: 2px; overflow: hidden; }
+.noise-fill { height: 4px; background: var(--amber); border-radius: 2px; width: 50%; transition: width 0.3s; }
+.noise-val { font-size: 9px; color: var(--dim); width: 36px; text-align: right; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-title">ARGUS<span>-IV</span> &nbsp;//&nbsp; IMU SENSOR FUSION</div>
+    <div class="header-sub">KALMAN FILTER SIMULATION &nbsp;·&nbsp; LSM9DS1 9-DOF &nbsp;·&nbsp; RASPBERRY PI 4B</div>
+  </div>
+  <div class="header-right">
+    <div class="status-row"><div class="dot"></div>SIMULATION ACTIVE</div>
+    <div class="badge">DEMO MODE</div>
+    <div class="clock" id="clk">--:--:-- UTC</div>
+  </div>
+</div>
+
+<!-- INSTRUCTIONS -->
+<div class="instructions">
+  <div class="inst-item"><span class="inst-key">DRAG</span><span>Rotate drone</span></div>
+  <span class="inst-sep">//</span>
+  <div class="inst-item"><span class="inst-key">SCROLL</span><span>Zoom</span></div>
+  <span class="inst-sep">//</span>
+  <div class="inst-item"><span class="inst-key">AUTO</span><span>Watch autonomous demo</span></div>
+  <span class="inst-sep">//</span>
+  <div class="inst-item" style="color:var(--amber);opacity:0.7">Simulated sensor noise shows Kalman filter advantage</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT -->
+  <div class="panel">
+    <div class="ph">SENSOR TELEMETRY <span class="ph-tag">LIVE</span></div>
+    <div class="dp">
+      <div class="section">
+        <div class="section-title">ROLL AXIS</div>
+        <div class="row"><span class="lbl">RAW</span><span class="val raw" id="rr">0.0°</span></div>
+        <div class="row"><span class="lbl">KALMAN</span><span class="val kal" id="rk">0.0°</span></div>
+        <div class="bar-wrap">
+          <div class="bar-track">
+            <div class="bar-mid"></div>
+            <div class="bar-raw" id="brr"></div>
+            <div class="bar-kal" id="brk"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">PITCH AXIS</div>
+        <div class="row"><span class="lbl">RAW</span><span class="val raw" id="pr">0.0°</span></div>
+        <div class="row"><span class="lbl">KALMAN</span><span class="val kal" id="pk">0.0°</span></div>
+        <div class="bar-wrap">
+          <div class="bar-track">
+            <div class="bar-mid"></div>
+            <div class="bar-raw" id="bpr"></div>
+            <div class="bar-kal" id="bpk"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">YAW AXIS</div>
+        <div class="row"><span class="lbl">GYRO INT</span><span class="val kal" id="yk">0.0°</span></div>
+      </div>
+      <hr class="divider">
+      <div class="section">
+        <div class="section-title">GYROSCOPE (dps)</div>
+        <div class="row"><span class="lbl">X</span><span class="val" id="gx">0.000</span></div>
+        <div class="row"><span class="lbl">Y</span><span class="val" id="gy">0.000</span></div>
+        <div class="row"><span class="lbl">Z</span><span class="val" id="gz">0.000</span></div>
+      </div>
+      <div class="section">
+        <div class="section-title">ACCELEROMETER (g)</div>
+        <div class="row"><span class="lbl">X</span><span class="val acc" id="ax">0.000</span></div>
+        <div class="row"><span class="lbl">Y</span><span class="val acc" id="ay">0.000</span></div>
+        <div class="row"><span class="lbl">Z</span><span class="val acc" id="az">9.810</span></div>
+      </div>
+    </div>
+    <!-- MODE -->
+    <div class="mode-panel">
+      <div class="mode-title">DEMO MODE</div>
+      <div class="mode-btns">
+        <div class="mode-btn active" id="btn-auto" onclick="setMode('auto')">AUTO</div>
+        <div class="mode-btn" id="btn-roll" onclick="setMode('roll')">ROLL</div>
+        <div class="mode-btn" id="btn-pitch" onclick="setMode('pitch')">PITCH</div>
+        <div class="mode-btn" id="btn-yaw" onclick="setMode('yaw')">YAW</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTRE VIEWER -->
+  <div class="panel">
+    <div class="ph">3D ORIENTATION VIEWER <span class="ph-tag">KALMAN FILTERED</span></div>
+    <div class="viewer" id="viewer">
+      <canvas id="three-canvas"></canvas>
+      <div class="viewer-hud">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="hud-label hud-tl">ARGUS-IV DRONE</div>
+        <div class="hud-label hud-tr" id="hud-mode">MODE: AUTO</div>
+        <div class="hud-label hud-bl">FILTER: KALMAN</div>
+        <div class="hud-label hud-br" id="hud-fps">-- FPS</div>
+        <div class="crosshair"></div>
+        <div class="angle-readout">
+          <div>R <span id="ar">0.0</span>°</div>
+          <div>P <span id="ap">0.0</span>°</div>
+          <div>Y <span id="ay2">0.0</span>°</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PLOTS -->
+  <div class="panel plots-panel">
+    <div class="ph">LIVE TELEMETRY PLOTS</div>
+    <div class="plot-block">
+      <div class="plot-label">
+        ROLL (deg)
+        <div class="plot-legend">
+          <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>RAW</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>KAL</div>
+        </div>
+      </div>
+      <canvas class="plot" id="cr"></canvas>
+    </div>
+    <div class="plot-block">
+      <div class="plot-label">
+        PITCH (deg)
+        <div class="plot-legend">
+          <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>RAW</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>KAL</div>
+        </div>
+      </div>
+      <canvas class="plot" id="cp"></canvas>
+    </div>
+    <div class="plot-block">
+      <div class="plot-label">YAW (deg)</div>
+      <canvas class="plot" id="cy"></canvas>
+    </div>
+    <div class="plot-block">
+      <div class="plot-label">ACCEL XYZ (g)
+        <div class="plot-legend">
+          <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div>X</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>Y</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div>Z</div>
+        </div>
+      </div>
+      <canvas class="plot" id="ca"></canvas>
+    </div>
+    <!-- NOISE -->
+    <div class="noise-block">
+      <div class="noise-title">NOISE REJECTION</div>
+      <div class="noise-row">
+        <span class="noise-lbl">ROLL</span>
+        <div class="noise-track"><div class="noise-fill" id="nr"></div></div>
+        <span class="noise-val" id="nrv">--</span>
+      </div>
+      <div class="noise-row">
+        <span class="noise-lbl">PITCH</span>
+        <div class="noise-track"><div class="noise-fill" id="np"></div></div>
+        <span class="noise-val" id="npv">--</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// ── CLOCK ────────────────────────────────────────
+setInterval(()=>{document.getElementById('clk').textContent=new Date().toUTCString().split(' ')[4]+' UTC';},500);
+
+// ── KALMAN FILTER (JS) ───────────────────────────
+class KF {
+  constructor() {
+    this.angle=0; this.bias=0;
+    this.P=[[0,0],[0,0]];
+    this.Qa=0.001; this.Qb=0.003; this.R=0.03;
+  }
+  update(a, r, dt) {
+    this.angle += dt*(r-this.bias);
+    this.P[0][0]+=dt*(dt*this.P[1][1]-this.P[0][1]-this.P[1][0]+this.Qa);
+    this.P[0][1]-=dt*this.P[1][1];
+    this.P[1][0]-=dt*this.P[1][1];
+    this.P[1][1]+=this.Qb*dt;
+    const S=this.P[0][0]+this.R;
+    const K=[this.P[0][0]/S, this.P[1][0]/S];
+    const y=a-this.angle;
+    this.angle+=K[0]*y; this.bias+=K[1]*y;
+    const p00=this.P[0][0], p01=this.P[0][1];
+    this.P[0][0]-=K[0]*p00; this.P[0][1]-=K[0]*p01;
+    this.P[1][0]-=K[1]*p00; this.P[1][1]-=K[1]*p01;
+    return this.angle;
+  }
+}
+
+const kfR=new KF(), kfP=new KF();
+
+// ── THREE.JS ─────────────────────────────────────
+const cv=document.getElementById('three-canvas');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x080b10,1);
+renderer.shadowMap.enabled=true;
+
+const scene=new THREE.Scene();
+
+// Fog
+scene.fog=new THREE.FogExp2(0x080b10,0.08);
+
+const camera=new THREE.PerspectiveCamera(48,1,0.1,100);
+camera.position.set(0,2.2,5.5);
+camera.lookAt(0,0,0);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x102030,1.2));
+const keyLight=new THREE.DirectionalLight(0xffcc66,2.5);
+keyLight.position.set(6,12,6);
+keyLight.castShadow=true;
+scene.add(keyLight);
+const fillLight=new THREE.DirectionalLight(0x3ca0ff,0.8);
+fillLight.position.set(-6,-4,-6);
+scene.add(fillLight);
+const rimLight=new THREE.DirectionalLight(0xffffff,0.4);
+rimLight.position.set(0,8,-8);
+scene.add(rimLight);
+
+// Grid
+const grid=new THREE.GridHelper(14,28,0x1e2d3d,0x1e2d3d);
+grid.material.opacity=0.6; grid.material.transparent=true;
+scene.add(grid);
+
+// Axes
+scene.add(new THREE.AxesHelper(1.8));
+
+// ── BUILD DRONE ───────────────────────────────────
+const DRONE=new THREE.Group();
+
+const mBody=new THREE.MeshPhongMaterial({color:0x1a2535,shininess:120,specular:0x334455});
+const mArm =new THREE.MeshPhongMaterial({color:0x0e1520,shininess:60});
+const mProp=new THREE.MeshPhongMaterial({color:0x3ca0ff,transparent:true,opacity:0.8,side:THREE.DoubleSide,shininess:200,specular:0x88ccff});
+const mMot =new THREE.MeshPhongMaterial({color:0xffb000,shininess:200,specular:0xffdd88});
+const mCam =new THREE.MeshPhongMaterial({color:0x0a0f16,shininess:40});
+const mGps =new THREE.MeshPhongMaterial({color:0xeeeeff,shininess:160,specular:0xffffff});
+const mDark=new THREE.MeshPhongMaterial({color:0x050a10});
+
+// Central body
+const bodyMesh=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.36,0.14,6),mBody);
+bodyMesh.castShadow=true;
+DRONE.add(bodyMesh);
+
+// Top plate
+const topPlate=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.06,6),new THREE.MeshPhongMaterial({color:0x1e3048,shininess:80}));
+topPlate.position.set(0,0.10,0);
+DRONE.add(topPlate);
+
+// Centre circle accent
+const accent=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.07,16),new THREE.MeshPhongMaterial({color:0xffb000,shininess:255,emissive:0x331100}));
+accent.position.set(0,0.11,0);
+DRONE.add(accent);
+
+// 4 arms + motors + props
+[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([sx,sz],i)=>{
+  const ex=sx*0.9, ez=sz*0.9;
+  const angle=Math.atan2(sx,sz);
+
+  // arm
+  const armMesh=new THREE.Mesh(new THREE.CylinderGeometry(0.038,0.038,1.15,8),mArm);
+  armMesh.rotation.z=Math.PI/2;
+  armMesh.rotation.y=angle;
+  armMesh.position.set(ex*0.5,0,ez*0.5);
+  armMesh.castShadow=true;
+  DRONE.add(armMesh);
+
+  // motor can
+  const motCan=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.1,12),mMot);
+  motCan.position.set(ex,0.05,ez);
+  DRONE.add(motCan);
+
+  // motor bottom
+  const motBot=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.03,12),mDark);
+  motBot.position.set(ex,-0.02,ez);
+  DRONE.add(motBot);
+
+  // prop hub
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.04,8),mDark);
+  hub.position.set(ex,0.13,ez);
+  DRONE.add(hub);
+
+  // prop disc (translucent)
+  const propDisc=new THREE.Mesh(new THREE.CylinderGeometry(0.33,0.33,0.01,24),mProp);
+  propDisc.position.set(ex,0.14,ez);
+  DRONE.add(propDisc);
+
+  // blades
+  const bladeMat=new THREE.MeshPhongMaterial({color:0x2288ee,transparent:true,opacity:0.9,side:THREE.DoubleSide});
+  [0,1].forEach(b=>{
+    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.58,0.008,0.07),bladeMat);
+    blade.rotation.y=b*Math.PI/2+(i*Math.PI/4);
+    blade.position.set(ex,0.15,ez);
+    DRONE.add(blade);
+  });
+
+  // leg strut
+  const legStrut=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.32,8),mArm);
+  legStrut.position.set(ex*0.78,-0.2,ez*0.78);
+  DRONE.add(legStrut);
+});
+
+// Landing skids
+[-1,1].forEach(s=>{
+  const skid=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,1.3,8),mArm);
+  skid.rotation.z=Math.PI/2;
+  skid.rotation.y=Math.PI/4;
+  skid.position.set(s*0.28,-0.36,0);
+  DRONE.add(skid);
+  // feet
+  [-0.55,0.55].forEach(off=>{
+    const foot=new THREE.Mesh(new THREE.SphereGeometry(0.025,6,6),mArm);
+    const angle2=Math.PI/4*(s>0?1:-1);
+    foot.position.set(s*0.28+Math.cos(angle2)*off,-0.36,Math.sin(angle2)*off);
+    DRONE.add(foot);
+  });
+});
+
+// Camera gimbal
+const gimbalBase=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.06,0.06),mArm);
+gimbalBase.position.set(0,-0.08,0.34);
+DRONE.add(gimbalBase);
+const camBody2=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.13,0.18),mCam);
+camBody2.position.set(0,-0.12,0.34);
+DRONE.add(camBody2);
+const camLens=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.08,12),new THREE.MeshPhongMaterial({color:0x000814,shininess:255,specular:0x334466}));
+camLens.rotation.x=Math.PI/2;
+camLens.position.set(0,-0.12,0.46);
+DRONE.add(camLens);
+// lens ring
+const lensRing=new THREE.Mesh(new THREE.TorusGeometry(0.058,0.008,8,16),new THREE.MeshPhongMaterial({color:0xffb000}));
+lensRing.rotation.x=Math.PI/2;
+lensRing.position.set(0,-0.12,0.47);
+DRONE.add(lensRing);
+
+// GPS dome
+const gpsDome=new THREE.Mesh(new THREE.SphereGeometry(0.08,12,8,0,Math.PI*2,0,Math.PI/2),mGps);
+gpsDome.position.set(0,0.17,-0.14);
+DRONE.add(gpsDome);
+const gpsBase2=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.02,12),new THREE.MeshPhongMaterial({color:0x334455}));
+gpsBase2.position.set(0,0.14,-0.14);
+DRONE.add(gpsBase2);
+
+scene.add(DRONE);
+
+// ── ORBIT CONTROLS (manual) ───────────────────────
+let isDragging=false, lastX=0, lastY=0;
+let orbitTheta=0.3, orbitPhi=0.4, orbitR=5.5;
+const viewer=document.getElementById('viewer');
+
+viewer.addEventListener('mousedown',(e)=>{isDragging=true;lastX=e.clientX;lastY=e.clientY;autoRotate=false;});
+window.addEventListener('mouseup',()=>{isDragging=false;});
+window.addEventListener('mousemove',(e)=>{
+  if(!isDragging)return;
+  orbitTheta+=(e.clientX-lastX)*0.008;
+  orbitPhi=Math.max(0.1,Math.min(1.5,orbitPhi+(e.clientY-lastY)*0.008));
+  lastX=e.clientX; lastY=e.clientY;
+});
+viewer.addEventListener('wheel',(e)=>{
+  orbitR=Math.max(2,Math.min(12,orbitR+e.deltaY*0.005));
+  e.preventDefault();
+},{passive:false});
+
+// Touch
+viewer.addEventListener('touchstart',(e)=>{isDragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;autoRotate=false;});
+window.addEventListener('touchend',()=>{isDragging=false;});
+window.addEventListener('touchmove',(e)=>{
+  if(!isDragging)return;
+  orbitTheta+=(e.touches[0].clientX-lastX)*0.01;
+  orbitPhi=Math.max(0.1,Math.min(1.5,orbitPhi+(e.touches[0].clientY-lastY)*0.01));
+  lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+});
+
+let autoRotate=false;
+
+// ── SIMULATION ────────────────────────────────────
+let mode='auto';
+let simT=0;
+let trueRoll=0, truePitch=0, trueYaw=0;
+let simYaw=0;
+const NOISE=4.5; // degrees of simulated noise
+
+function setMode(m) {
+  mode=m;
+  ['auto','roll','pitch','yaw'].forEach(n=>{
+    document.getElementById('btn-'+n).classList.toggle('active',n===m);
+  });
+  document.getElementById('hud-mode').textContent='MODE: '+m.toUpperCase();
+  simT=0;
+}
+
+// ── CHARTS ────────────────────────────────────────
+const N=100;
+function mkChart(id,colors){
+  return new Chart(document.getElementById(id),{
+    type:'line',
+    data:{
+      labels:Array(N).fill(''),
+      datasets:colors.map(c=>({data:Array(N).fill(null),borderColor:c,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false}))
+    },
+    options:{
+      animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false},
+        y:{grid:{color:'#1a2530',lineWidth:0.5},ticks:{color:'#4a5a6a',font:{size:8},maxTicksLimit:4}}
+      }
+    }
+  });
+}
+const chartR=mkChart('cr',['#e03838','#3cd278']);
+const chartP=mkChart('cp',['#e03838','#3cd278']);
+const chartY=mkChart('cy',['#ffb000']);
+const chartA=mkChart('ca',['#3ca0ff','#3cd278','#ffb000']);
+
+function pushChart(ch,...vs){
+  ch.data.datasets.forEach((d,i)=>{
+    d.data.push(vs[i]!==undefined?vs[i]:null);
+    if(d.data.length>N)d.data.shift();
+  });
+  ch.update('none');
+}
+
+// ── BAR HELPER ────────────────────────────────────
+function setBar(rawId,kalId,rawA,kalA){
+  function pos(id,a){
+    const el=document.getElementById(id);
+    const p=Math.max(0,Math.min(100,(a+90)/180*100)),m=50;
+    if(p>=m){el.style.left=m+'%';el.style.width=(p-m)+'%';}
+    else{el.style.left=p+'%';el.style.width=(m-p)+'%';}
+  }
+  pos(rawId,rawA); pos(kalId,kalA);
+}
+
+// ── RESIZE ────────────────────────────────────────
+function resize(){
+  const w=cv.clientWidth,h=cv.clientHeight;
+  if(renderer.domElement.width!==w||renderer.domElement.height!==h){
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+}
+
+// ── MAIN LOOP ─────────────────────────────────────
+let lastTime=performance.now();
+let fpsArr=[];
+let chartTick=0;
+let prevKR=0,prevKP=0;
+let gyroBiasX=0.1,gyroBiasY=-0.05; // simulated bias
+
+function tick(){
+  requestAnimationFrame(tick);
+  resize();
+
+  const now=performance.now();
+  const dt=Math.min((now-lastTime)/1000, 0.05);
+  lastTime=now;
+  simT+=dt;
+
+  // FPS
+  fpsArr.push(1/dt);
+  if(fpsArr.length>30)fpsArr.shift();
+  const fps=Math.round(fpsArr.reduce((a,b)=>a+b,0)/fpsArr.length);
+  document.getElementById('hud-fps').textContent=fps+' FPS';
+
+  // ── SIMULATE TRUE MOTION ──────────────────────
+  if(mode==='auto'){
+    trueRoll  = 30*Math.sin(simT*0.6) + 15*Math.sin(simT*1.3);
+    truePitch = 25*Math.cos(simT*0.5) + 10*Math.sin(simT*1.1);
+    trueYaw   = simT*12 % 360;
+    autoRotate=false;
+  } else if(mode==='roll'){
+    trueRoll  = 45*Math.sin(simT*0.8);
+    truePitch = 0; trueYaw=0;
+  } else if(mode==='pitch'){
+    truePitch = 40*Math.sin(simT*0.7);
+    trueRoll  = 0; trueYaw=0;
+  } else if(mode==='yaw'){
+    trueYaw   = (simT*30) % 360;
+    trueRoll  = 0; truePitch=0;
+  }
+
+  // ── SIMULATE SENSOR NOISE ──────────────────────
+  const noiseR=trueRoll  + (Math.random()-0.5)*NOISE*2 + Math.sin(simT*7)*1.5;
+  const noiseP=truePitch + (Math.random()-0.5)*NOISE*2 + Math.cos(simT*9)*1.5;
+
+  // Simulated gyro (rate) with bias
+  const gyroX=(trueRoll -prevKR)/dt*0.017 + gyroBiasX + (Math.random()-0.5)*0.5;
+  const gyroY=(truePitch-prevKP)/dt*0.017 + gyroBiasY + (Math.random()-0.5)*0.5;
+  const gyroZ=(mode==='yaw'?30:3) + (Math.random()-0.5)*2;
+  simYaw+=gyroZ*dt;
+
+  // Simulated accel
+  const roll_rad=trueRoll*Math.PI/180;
+  const pitch_rad=truePitch*Math.PI/180;
+  const ax2=-Math.sin(pitch_rad)*9.81 + (Math.random()-0.5)*0.3;
+  const ay2= Math.sin(roll_rad)*Math.cos(pitch_rad)*9.81 + (Math.random()-0.5)*0.3;
+  const az2= Math.cos(roll_rad)*Math.cos(pitch_rad)*9.81 + (Math.random()-0.5)*0.3;
+
+  // ── KALMAN UPDATE ──────────────────────────────
+  const kalRoll  = kfR.update(noiseR, gyroX, dt);
+  const kalPitch = kfP.update(noiseP, gyroY, dt);
+  prevKR=kalRoll; prevKP=kalPitch;
+
+  // ── UPDATE 3D DRONE ────────────────────────────
+  DRONE.rotation.x=THREE.MathUtils.degToRad(kalPitch);
+  DRONE.rotation.z=THREE.MathUtils.degToRad(-kalRoll);
+  DRONE.rotation.y=THREE.MathUtils.degToRad(trueYaw);
+
+  // Camera orbit
+  camera.position.x=orbitR*Math.sin(orbitTheta)*Math.sin(orbitPhi);
+  camera.position.y=orbitR*Math.cos(orbitPhi);
+  camera.position.z=orbitR*Math.cos(orbitTheta)*Math.sin(orbitPhi);
+  camera.lookAt(0,0,0);
+
+  renderer.render(scene,camera);
+
+  // ── UPDATE UI ──────────────────────────────────
+  document.getElementById('rr').textContent=noiseR.toFixed(1)+'°';
+  document.getElementById('rk').textContent=kalRoll.toFixed(1)+'°';
+  document.getElementById('pr').textContent=noiseP.toFixed(1)+'°';
+  document.getElementById('pk').textContent=kalPitch.toFixed(1)+'°';
+  document.getElementById('yk').textContent=(simYaw%360).toFixed(1)+'°';
+  document.getElementById('gx').textContent=gyroX.toFixed(2);
+  document.getElementById('gy').textContent=gyroY.toFixed(2);
+  document.getElementById('gz').textContent=gyroZ.toFixed(2);
+  document.getElementById('ax').textContent=ax2.toFixed(3);
+  document.getElementById('ay').textContent=ay2.toFixed(3);
+  document.getElementById('az').textContent=az2.toFixed(3);
+
+  // Angle readout overlay
+  document.getElementById('ar').textContent=kalRoll.toFixed(1);
+  document.getElementById('ap').textContent=kalPitch.toFixed(1);
+  document.getElementById('ay2').textContent=(trueYaw%360).toFixed(1);
+
+  // Bars
+  setBar('brr','brk',noiseR,kalRoll);
+  setBar('bpr','bpk',noiseP,kalPitch);
+
+  // Noise rejection indicator
+  const noiseRej_R=Math.min(100,Math.abs(noiseR-kalRoll)/NOISE*100);
+  const noiseRej_P=Math.min(100,Math.abs(noiseP-kalPitch)/NOISE*100);
+  document.getElementById('nr').style.width=noiseRej_R+'%';
+  document.getElementById('np').style.width=noiseRej_P+'%';
+  document.getElementById('nrv').textContent=Math.round(noiseRej_R)+'%';
+  document.getElementById('npv').textContent=Math.round(noiseRej_P)+'%';
+
+  // Charts every 3rd frame
+  if(++chartTick%3===0){
+    pushChart(chartR,noiseR,kalRoll);
+    pushChart(chartP,noiseP,kalPitch);
+    pushChart(chartY,simYaw%360);
+    pushChart(chartA,ax2,ay2,az2);
+  }
+}
+
+tick();
+</script>
+</body>
+</html>
