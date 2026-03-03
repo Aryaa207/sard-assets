@@ -1,4 +1,4 @@
-# ARGUS-IV — Face Detection & IMU Dashboard
+# Face Detection & IMU Dashboard
 
 > Real-time face detection with military-style tactical HUD and pan-tilt servo tracking, plus a 9-DOF IMU dashboard with Kalman filtering and 3D visualization — all running on a Raspberry Pi 4B.
 
