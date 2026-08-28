@@ -9,9 +9,7 @@ from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo as adafruit_servo
 from picamera2 import Picamera2
 
-# ============================================================
-#  CONFIGURATION
-# ============================================================
+
 PROCESS_WIDTH   = 320
 PROCESS_HEIGHT  = 240
 VIEW_WIDTH      = 1280
@@ -25,9 +23,7 @@ MODEL_PATH      = "face_detection_yunet_2023mar.onnx"
 SCALE_X = VIEW_WIDTH  / PROCESS_WIDTH
 SCALE_Y = VIEW_HEIGHT / PROCESS_HEIGHT
 
-# ============================================================
-#  SERVO CONFIGURATION
-# ============================================================
+
 PAN_CHANNEL  = 2
 TILT_CHANNEL = 1
 
@@ -43,9 +39,7 @@ PAN_KP,  PAN_KI,  PAN_KD  = 0.06, 0.00008, 0.010
 TILT_KP, TILT_KI, TILT_KD = 0.06, 0.00008, 0.010
 DEAD_ZONE = 20       # pixels — ignore small jitter
 
-# ============================================================
-#  COLOUR PALETTE
-# ============================================================
+
 C_BG            = (10,  13,  18)
 C_PANEL         = (18,  24,  32)
 C_PANEL_BORDER  = (45,  58,  72)
@@ -61,9 +55,7 @@ C_BOX_NOMINAL   = (60,  160, 255)
 C_BOX_ELEVATED  = (255, 176, 0)
 C_BOX_HIGH      = (220, 45,  45)
 
-# ============================================================
-#  LAYOUT
-# ============================================================
+
 TOP_H    = 36
 BOTTOM_H = 52
 LEFT_W   = 200
@@ -75,9 +67,7 @@ CAM_H    = VIEW_HEIGHT - TOP_H  - BOTTOM_H
 CAM_SCALE_X = CAM_W / PROCESS_WIDTH
 CAM_SCALE_Y = CAM_H / PROCESS_HEIGHT
 
-# ============================================================
-#  PID CONTROLLER
-# ============================================================
+
 class PID:
     def __init__(self, kp, ki, kd, limit):
         self.kp         = kp
@@ -124,9 +114,6 @@ class PID:
         return self.smooth_out
 
 
-# ============================================================
-#  SERVO CONTROLLER
-# ============================================================
 class ServoController:
     def __init__(self):
         i2c          = busio.I2C(board.SCL, board.SDA)
@@ -142,13 +129,11 @@ class ServoController:
             min_pulse=SERVO_MIN_PULSE, max_pulse=SERVO_MAX_PULSE,
             actuation_range=180)
 
-        # Start from current physical position — no snap
-        # Read current duty cycle and back-calculate angle
+       
         self.pan_angle  = 0.0
         self.tilt_angle = 0.0
 
-        # Do NOT send any angle command on startup
-        # Servos will stay exactly where they physically are
+       
         print("Servos ready — holding current position.")
 
     def _to_servo_angle(self, degrees, limit):
@@ -174,18 +159,14 @@ class ServoController:
         self.pca.deinit()
 
 
-# ============================================================
-#  MODEL
-# ============================================================
+
 detector = cv2.FaceDetectorYN.create(
     MODEL_PATH, "",
     (PROCESS_WIDTH, PROCESS_HEIGHT),
     SCORE_THRESHOLD, NMS_THRESHOLD, TOP_K
 )
 
-# ============================================================
-#  CAMERA
-# ============================================================
+
 print("Initialising Arducam OWLSight 64 MP ...")
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(
@@ -201,9 +182,7 @@ try:
 except Exception as exc:
     print(f"Autofocus unavailable: {exc}")
 
-# ============================================================
-#  PYGAME
-# ============================================================
+
 pygame.init()
 screen = pygame.display.set_mode((VIEW_WIDTH, VIEW_HEIGHT))
 pygame.display.set_caption("ARGUS-IV // AUTONOMOUS TRACKING SYSTEM")
@@ -213,16 +192,12 @@ font_med   = pygame.font.SysFont("monospace", 13, bold=True)
 font_small = pygame.font.SysFont("monospace", 12)
 font_tiny  = pygame.font.SysFont("monospace", 10)
 
-# ============================================================
-#  SERVO + PID INIT
-# ============================================================
+
 servo  = ServoController()
 pid_pan  = PID(PAN_KP,  PAN_KI,  PAN_KD,  PAN_LIMIT)
 pid_tilt = PID(TILT_KP, TILT_KI, TILT_KD, TILT_LIMIT)
 
-# ============================================================
-#  UI HELPERS
-# ============================================================
+
 def filled_panel(surf, rect, fill=C_PANEL, border=C_PANEL_BORDER, radius=0):
     pygame.draw.rect(surf, fill,   rect, border_radius=radius)
     pygame.draw.rect(surf, border, rect, 1, border_radius=radius)
@@ -459,9 +434,7 @@ def draw_bottom_bar(surf, face_count, fps, tick):
         True, C_WHITE_DIM), (bx, by + 24))
 
 
-# ============================================================
-#  SCANLINE
-# ============================================================
+
 scan_y     = 0
 SCAN_SPEED = 3
 
@@ -471,9 +444,7 @@ def draw_scanline(surf, sy):
     surf.blit(line, (CAM_X, CAM_Y + sy % CAM_H))
 
 
-# ============================================================
-#  MAIN LOOP
-# ============================================================
+
 print("ARGUS-IV ONLINE -- Autonomous tracking active. Press Q to quit.")
 
 fps         = 0.0
@@ -496,16 +467,16 @@ try:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
                 raise KeyboardInterrupt
 
-        # --- Capture ---
+        
         frame = picam2.capture_array()
 
-        # --- AI ---
+       
         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         img_small = cv2.resize(frame_bgr, (PROCESS_WIDTH, PROCESS_HEIGHT))
         _, faces  = detector.detect(img_small)
         face_count = len(faces) if faces is not None else 0
 
-        # --- PID Tracking ---
+       
         if faces is not None and len(faces) > 0:
             primary  = faces[0]
             bx = primary[0] + primary[2] / 2.0
@@ -517,7 +488,7 @@ try:
             pan_delta  =  pid_pan.update(pan_err)
             tilt_delta = -pid_tilt.update(tilt_err)
 
-            # Debug — print every 30 frames
+            
             if tick % 30 == 0:
                 print(f"Face: bx={bx:.0f} by={by:.0f} | err pan={pan_err:.0f} tilt={tilt_err:.0f} | delta pan={pan_delta:.2f} tilt={tilt_delta:.2f} | angle pan={servo.pan_angle:.1f} tilt={servo.tilt_angle:.1f}")
 
@@ -528,7 +499,7 @@ try:
             pan_err  = 0.0
             tilt_err = 0.0
 
-        # --- Draw ---
+        
         draw_static_frame(screen)
 
         cam_resized = cv2.resize(frame, (CAM_W, CAM_H))
